@@ -59,6 +59,11 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+
+    // Add these missing dependencies for Compose
+    implementation("androidx.compose.foundation:foundation:1.5.0")  // for `clip` modifier and other foundation utilities
+    implementation("androidx.compose.material:material-icons-extended:1.5.0")  // for icons like `Icons.Filled.Check`
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
