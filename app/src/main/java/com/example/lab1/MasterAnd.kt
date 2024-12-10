@@ -26,172 +26,185 @@ data class GameRowState(
     val feedbackColors: List<Color> = listOf()
 )
 
- class MasterAnd : ComponentActivity() {
-        override fun onCreate(savedInstanceState: Bundle?) {
-            super.onCreate(savedInstanceState)
-            setContent {
-                MasterAndScreen()
-            }
+class MasterAnd : ComponentActivity() {
+
+    var colorList = listOf(
+        Color.Red,
+        Color.Blue,
+        Color.Green,
+        Color.Yellow,
+        Color.Black,
+        Color.Magenta,
+        Color.Cyan,
+        Color.Gray,
+        Color(128, 0, 128),
+        Color(255, 165, 0)
+    )
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MasterAndScreen(
+                name = intent?.getStringExtra("NAME") ?: "No name provided",
+                email = intent?.getStringExtra("EMAIL") ?: "No email provided",
+                numberColor = intent?.getIntExtra("COLOR", 4) ?: 4,
+                profileUriString = intent?.getStringExtra("PROFILE_URI")
+            )
         }
+    }
 
-        @Composable
-        fun MasterAndScreen() {
-            val name = intent.getStringExtra("NAME") ?: "No name provided"
-            val email = intent.getStringExtra("EMAIL") ?: "No email provided"
-            val numberColor = intent.getIntExtra("COLOR", 4) // Default to 4 colors if not provided
-            val profileUriString = intent.getStringExtra("PROFILE_URI")
-            val profileImageUri = if (profileUriString != null) Uri.parse(profileUriString) else null
+    @Composable
+    fun MasterAndScreen(
+        name: String = "Preview Name",
+        email: String = "preview@example.com",
+        numberColor: Int = 4,
+        profileUriString: String? = null
+    ) {
+        val profileImageUri = profileUriString?.let { Uri.parse(it) }
 
-            var gameRows by remember { mutableStateOf(mutableListOf<GameRowState>()) }
-            var selectedColors by remember { mutableStateOf(listOf(Color.Transparent, Color.Transparent, Color.Transparent, Color.Transparent)) }
-            var correctColors by remember { mutableStateOf(selectRandomColors(listOf(Color.Red, Color.Blue, Color.Green, Color.Yellow), numberColor)) }
-            var score by remember { mutableStateOf(0) }
-            var gameFinished by remember { mutableStateOf(false) }
+        var gameRows by remember { mutableStateOf(mutableListOf<GameRowState>()) }
+        var selectedColors by remember { mutableStateOf(List(4) { Color.Transparent }) }  // Always 4 colors
+        var correctColors by remember { mutableStateOf(selectRandomColors(colorList, numberColor)) }
+        var score by remember { mutableStateOf(0) }
+        var gameFinished by remember { mutableStateOf(false) }
+        var availableColors by remember { mutableStateOf(correctColors.shuffled()) }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Display correct colors for debugging (remove in final version)
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Your score: $score",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
+
+            Text(
+                text = "Your score: $score",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            gameRows.forEach { rowState ->
+                GameRow(
+                    selectedColors = rowState.selectedColors,
+                    feedbackColors = rowState.feedbackColors,
+                    clickable = false,
+                    onSelectColorClick = {},
+                    onCheckClick = {}
                 )
+            }
 
-                gameRows.forEach { rowState ->
-                    GameRow(
-                        selectedColors = rowState.selectedColors,
-                        feedbackColors = rowState.feedbackColors,
-                        clickable = false,
-                        onSelectColorClick = {},
-                        onCheckClick = {}
-                    )
-                }
+            if (!gameFinished) {
+                GameRow(
+                    selectedColors = selectedColors,
+                    feedbackColors = listOf(),
+                    clickable = true,
+                    onSelectColorClick = { index ->
+                        selectedColors = selectedColors.toMutableList().also {
+                            it[index] = selectNextAvailableColor(
+                                availableColors,
+                                selectedColors,
+                                selectedColors[index],
+                                numberColor  // Respect numberColor
+                            )
+                        }
+                    },
+                    onCheckClick = {
+                        if (!selectedColors.contains(Color.Transparent)) {
+                            val feedback = checkColors(selectedColors, correctColors)
 
-                if (!gameFinished) {
-                    GameRow(
-                        selectedColors = selectedColors,
-                        feedbackColors = listOf(),
-                        clickable = true,
-                        onSelectColorClick = { index ->
-                            selectedColors = selectedColors.toMutableList().also {
-                                it[index] = selectNextAvailableColor(
-                                    listOf(Color.Red, Color.Blue, Color.Green, Color.Yellow),
-                                    selectedColors,
-                                    index
+                            gameRows = gameRows.toMutableList().also {
+                                it.add(
+                                    GameRowState(
+                                        selectedColors.toList(),
+                                        feedback
+                                    )
                                 )
                             }
-                        },
-                        onCheckClick = {
-                            if (!selectedColors.contains(Color.Transparent)) {
-                                val feedback = checkColors(selectedColors, correctColors)
 
-                                gameRows = gameRows.toMutableList().also {
-                                    it.add(
-                                        GameRowState(
-                                            selectedColors.toList(),
-                                            feedback
-                                        )
-                                    )
-                                }
+                            if (feedback.all { it == Color.Green }) {
+                                gameFinished = true
 
-                                if (feedback.all { it == Color.Green }) {
-                                    gameFinished = true
-                                } else {
-                                    selectedColors = listOf(Color.Transparent, Color.Transparent, Color.Transparent, Color.Transparent)
-                                }
-                                score++
+                            } else {
+                                // Reset selectedColors to transparent after check
+                                selectedColors = List(4) { Color.Transparent }
                             }
+                            score++
                         }
-                    )
-                }
-
+                    }
+                )
+            }
+            if (gameFinished) {
                 Button(onClick = {
                     gameRows = mutableListOf()
-                    selectedColors = listOf(Color.Transparent, Color.Transparent, Color.Transparent, Color.Transparent)
-                    correctColors = selectRandomColors(listOf(Color.Red, Color.Blue, Color.Green, Color.Yellow), numberColor)
+                    selectedColors = List(4) { Color.Transparent }
+                    correctColors = selectRandomColors(colorList, numberColor)
                     score = 0
                     gameFinished = false
                 }) {
                     Text("Start over")
                 }
+            }
+            Spacer(modifier = Modifier.weight(1f))
 
-                Spacer(modifier = Modifier.weight(1f))
-              //  if(gameFinished){
-                Button(
-                    onClick = {
-                        val intent = Intent(this@MasterAnd, ScoreView::class.java).apply {
-                            putExtra("NAME", name)
-                            putExtra("EMAIL", email)
-                            putExtra("COLOR", numberColor)
-                            putExtra("PROFILE_URI", profileImageUri?.toString())
-                            putExtra("SCORE", score)
-                        }
-                        startActivity(intent)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Score")
-                }
-                Button(
-                    onClick = {
-                        val intent = Intent(this@MasterAnd, ProfileScreen::class.java).apply {
-                            putExtra("NAME", name)
-                            putExtra("EMAIL", email)
-                            putExtra("COLOR", numberColor)
-                            putExtra("PROFILE_URI", profileImageUri?.toString())
-                        }
-                        startActivity(intent)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Profile")
-                }
+            Button(
+                onClick = {
+                    val intent = Intent(this@MasterAnd, ScoreView::class.java).apply {
+                        putExtra("NAME", name)
+                        putExtra("EMAIL", email)
+                        putExtra("COLOR", numberColor)
+                        putExtra("PROFILE_URI", profileImageUri?.toString())
+                        putExtra("SCORE", score)
+                    }
+                    startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Score")
+            }
+
+            Button(
+                onClick = {
+                    val intent = Intent(this@MasterAnd, ProfileScreen::class.java).apply {
+                        putExtra("NAME", name)
+                        putExtra("EMAIL", email)
+                        putExtra("COLOR", numberColor)
+                        putExtra("PROFILE_URI", profileImageUri?.toString())
+                    }
+                    startActivity(intent)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Profile")
             }
         }
-
-        fun selectRandomColors(availableColors: List<Color>, numberColor: Int): List<Color> {
-            return availableColors.shuffled().take(numberColor)
-        }
-
-        // Other functions...
-
-
-    // Wybranie następnego dostępnego koloru
-    fun selectNextAvailableColor(
-        availableColors: List<Color>,
-        selectedColors: List<Color>,
-        index: Int
-    ): Color {
-        val available = availableColors.filter { it !in selectedColors }
-        return available.firstOrNull() ?: Color.Transparent
     }
 
-    // Porównanie wybranych kolorów z poprawnymi
     fun checkColors(
         selectedColors: List<Color>,
         correctColors: List<Color>
     ): List<Color> {
         val feedback = mutableListOf<Color>()
-        val checked = mutableListOf(false, false, false, false)
+        val checked = mutableListOf<Boolean>()
 
-        // Idealne dopasowanie
-        for (i in selectedColors.indices) {
+        // Ensure both lists are of the same length
+        val size = selectedColors.size.coerceAtMost(correctColors.size)
+
+        // Check for exact matches (green feedback)
+        for (i in 0 until size) {
             if (selectedColors[i] == correctColors[i]) {
                 feedback.add(Color.Green)
-                checked[i] = true
+                checked.add(true)
             } else {
-                feedback.add(Color.Transparent) // Póki co brak feedbacku (nie trafiony)
+                feedback.add(Color.Transparent)
+                checked.add(false)
             }
         }
 
-        // Częściowe dopasowanie
-        for (i in selectedColors.indices) {
+        // Check for color matches in wrong positions (yellow feedback)
+        for (i in 0 until size) {
             if (feedback[i] == Color.Transparent) {
-                for (j in correctColors.indices) {
+                for (j in 0 until size) {
                     if (!checked[j] && selectedColors[i] == correctColors[j]) {
                         feedback[i] = Color.Yellow
                         checked[j] = true
@@ -201,7 +214,48 @@ data class GameRowState(
             }
         }
 
+        // If the list sizes are unequal, handle the remaining elements (optional, based on game logic)
+        while (feedback.size < selectedColors.size) {
+            feedback.add(Color.Transparent)
+        }
+
         return feedback
+    }
+
+
+
+    fun selectRandomColors(availableColors: List<Color>, numberColor: Int): List<Color> {
+        return availableColors.shuffled().take(numberColor)
+    }
+
+    fun selectNextAvailableColor(
+        colors: List<Color>,
+        selectedColors: List<Color>,
+        currentColor: Color,
+        numberColor: Int
+    ): Color {
+        // Limit the colors available to the user based on numberColor
+        val availableColors = colors.take(numberColor)
+
+        // Get the index of the current color in the list
+        val currentIndex = availableColors.indexOf(currentColor)
+
+        // Try to find the next available color that is not already selected
+        for (i in currentIndex + 1 until availableColors.size) {
+            if (!selectedColors.contains(availableColors[i])) {
+                return availableColors[i]
+            }
+        }
+
+        // If no color is found, loop back and try earlier colors
+        for (i in 0 until currentIndex) {
+            if (!selectedColors.contains(availableColors[i])) {
+                return availableColors[i]
+            }
+        }
+
+        // If no other color is available, fallback to the current color
+        return currentColor
     }
 
     @Composable
@@ -256,11 +310,10 @@ data class GameRowState(
                 )
             }
 
-            // Przycisk sprawdzania
             IconButton(
                 onClick = onCheckClick,
                 modifier = Modifier.size(50.dp),
-                enabled = !selectedColors.contains(Color.Transparent) // Aktywny tylko jeśli wszystkie kolory są ustawione
+                enabled = !selectedColors.contains(Color.Transparent)
             ) {
                 Icon(
                     imageVector = Icons.Default.Check,
@@ -269,7 +322,6 @@ data class GameRowState(
                 )
             }
 
-            // Wyświetlenie feedbacku (kolory)
             feedbackColors.forEach { feedbackColor ->
                 FeedbackCircle(color = feedbackColor)
             }
@@ -279,7 +331,10 @@ data class GameRowState(
     @Preview(showBackground = true)
     @Composable
     fun MasterAndPreview() {
-        MasterAndScreen()
+        MasterAndScreen(
+            name = "Preview User",
+            email = "preview@example.com",
+            numberColor = 4
+        )
     }
-
 }
