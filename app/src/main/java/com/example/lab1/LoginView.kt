@@ -1,5 +1,4 @@
 package com.example.lab1
-
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -35,10 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
 
-
-import com.example.lab1.ProfileScreen
-
-class MainActivity : ComponentActivity() {
+class LoginView : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -131,11 +127,13 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun ProfileScreen() {
+        // States for user input
         val name = rememberSaveable { mutableStateOf("") }
         val email = rememberSaveable { mutableStateOf("") }
         val profileImageUri = rememberSaveable { mutableStateOf<Uri?>(null) }
-        val numberColor = rememberSaveable { mutableStateOf(5) } // Default value as Int
+        val numberColor = rememberSaveable { mutableStateOf("") }
 
+        // Validation states
         val nameError = rememberSaveable { mutableStateOf(false) }
         val emailError = rememberSaveable { mutableStateOf(false) }
         val numberColorError = rememberSaveable { mutableStateOf(false) }
@@ -183,50 +181,22 @@ class MainActivity : ComponentActivity() {
                 }
             )
 
-            // Number of colors field with validation
-            OutlinedTextField(
-                value = numberColor.value.toString(),
-                onValueChange = {
-                    val parsedValue = it.toIntOrNull()
-                    if (parsedValue != null) {
-                        numberColor.value = parsedValue
-                        numberColorError.value = parsedValue !in 5..10
-                    } else {
-                        numberColorError.value = true
-                    }
-                },
-                label = { Text("Number color (5-10)") },
+            OutlinedTextFieldWithError(
+                value = numberColor.value,
+                onValueChange = { numberColor.value = it },
+                label = "Number color (5-10)",
                 isError = numberColorError.value,
+                errorMessage = "Must be a number between 5 and 10",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+                validateInput = { input ->
+                    val number = input.toIntOrNull()
+                    numberColorError.value = !(number != null && number in 5..10)
+                    !numberColorError.value
+                }
             )
 
-            if (numberColorError.value) {
-                Text(
-                    "Must be a number between 5 and 10",
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-
-            Button(
-                onClick = {
-                    if (!nameError.value && !emailError.value && !numberColorError.value) {
-                        val intent = Intent(this@MainActivity, ProfileScreen::class.java).apply {
-                            putExtra("NAME", name.value)
-                            putExtra("EMAIL", email.value)
-                            putExtra("COLOR", numberColor.value)
-                            putExtra("PROFILE_URI", profileImageUri.value?.toString())
-                        }
-                        startActivity(intent)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Next")
-            }
         }
     }
-
 
     @Preview(showBackground = true)
     @Composable

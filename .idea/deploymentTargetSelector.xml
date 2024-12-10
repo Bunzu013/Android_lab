@@ -16,7 +16,10 @@
       <SelectionState runConfigName="ProfileScreenInitialPreview">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="CircularButtonPreview">
+      <SelectionState runConfigName="MasterAndPreview">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="ScoreView">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>
