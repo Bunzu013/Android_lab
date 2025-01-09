@@ -70,6 +70,9 @@ dependencies {
     implementation("androidx.compose.foundation:foundation:1.5.0")  // for `clip` modifier and other foundation utilities
     implementation("androidx.compose.material:material-icons-extended:1.5.0")  // for icons like `Icons.Filled.Check`
 
+        implementation ("androidx.compose.animation:animation:<latest_version>")
+        implementation ("androidx.compose.material3:material3:<latest_version>")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
