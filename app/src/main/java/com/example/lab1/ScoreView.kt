@@ -1,9 +1,7 @@
-package com.example.lab1
-
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -11,53 +9,37 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LiveData
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.lifecycle.MutableLiveData
+import com.example.lab1.ScoreViewModel
+import com.example.lab1.db.ScoreWithPlayer
 
 class ScoreView : ComponentActivity() {
+
+    private val scoreViewModel: ScoreViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val score = intent.getIntExtra("SCORE", 0) // Get the score passed from the previous activity
-        val name = intent.getStringExtra("NAME") ?: "No name provided"
-        val email = intent.getStringExtra("EMAIL") ?: "No email provided"
-        val numberColor = intent.getIntExtra("COLOR", 0)
-        val profileUriString = intent.getStringExtra("PROFILE_URI")
+
+        // Załaduj dane
+        scoreViewModel.loadScoresWithPlayers()
+
         setContent {
             ScoreScreen(
-                score = score,
-                onPlayAgain = {
-                    // Navigate back to MasterAnd to play again
-                    val intent = Intent(this, MasterAnd::class.java).apply {
-                        putExtra("NAME", name)
-                        putExtra("EMAIL", email)
-                        putExtra("COLOR", numberColor)
-                        putExtra("PROFILE_URI", profileUriString)
-                    }
-                    startActivity(intent)
-                    finish() // Close the score screen to avoid going back here
-                },
-                onGoToProfile = {
-                    // Navigate to ProfileScreen
-                    val intent = Intent(this, ProfileScreen::class.java).apply {
-                        putExtra("NAME", name)
-                        putExtra("EMAIL", email)
-                        putExtra("COLOR", numberColor)
-                        putExtra("PROFILE_URI", profileUriString)
-                    }
-                    startActivity(intent)
-                    finish()
-                }
+                scoresWithPlayers = scoreViewModel.scoresWithPlayers
             )
         }
     }
 }
+
 @Composable
-fun ScoreScreen(
-    score: Int,
-    onPlayAgain: () -> Unit,
-    onGoToProfile: () -> Unit
-) {
+fun ScoreScreen(scoresWithPlayers: LiveData<List<ScoreWithPlayer>>) {
+    // Pobranie wartości z LiveData
+    val scores = scoresWithPlayers.observeAsState(emptyList())
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,39 +47,35 @@ fun ScoreScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Your Score: $score",
-            style = MaterialTheme.typography.displayLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        Button(
-            onClick = onPlayAgain,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        ) {
-            Text("Play Again")
+        // Wyświetlanie wyników
+        scores.value?.forEach { scoreWithPlayer ->
+            Text(
+                text = "${scoreWithPlayer.name}: ${scoreWithPlayer.score}",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
         }
 
-        Button(
-            onClick = onGoToProfile,
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Przycisk przejścia do profilu
+        Button(onClick = { /* Użyj jakiejś akcji */ }) {
             Text("Go to Profile")
         }
     }
 }
 
-
 @Preview(showBackground = true)
 @Composable
 fun ScoreScreenPreview() {
-    ScoreScreen(
-        score = 8,
-        onPlayAgain = {},
-        onGoToProfile = {}
+    // Tworzenie przykładowych danych w LiveData
+    val sampleScores = MutableLiveData<List<ScoreWithPlayer>>()
+    sampleScores.value = listOf(
+        ScoreWithPlayer(id = 1, name = "John Doe", score = 100),
+        ScoreWithPlayer(id = 2, name = "Jane Doe", score = 150)
     )
+
+    // Używamy ScoreScreen, przekazując LiveData
+    ScoreScreen(scoresWithPlayers = sampleScores)
 }
 
