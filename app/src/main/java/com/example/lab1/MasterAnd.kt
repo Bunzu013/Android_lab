@@ -110,8 +110,11 @@ class MasterAnd : ComponentActivity() {
 
             gameRows.forEachIndexed { index, rowState ->
                 AnimatedVisibility(
-                    visible = true, // Wszystkie wiersze są widoczne
-                    enter = expandVertically(expandFrom = Alignment.Top)
+                    visible = true,
+                    enter = expandVertically(
+                        expandFrom = Alignment.Top
+
+                    )
                 ) {
                     GameRow(
                         selectedColors = rowState.selectedColors,
@@ -300,7 +303,7 @@ class MasterAnd : ComponentActivity() {
             kotlinx.coroutines.delay(delayMillis.toLong())
             animColor.animateTo(
                 targetValue = color,
-                animationSpec = tween(durationMillis = 500) // Czas trwania animacji
+                animationSpec = tween(durationMillis = 500)
             )
         }
 
@@ -335,9 +338,15 @@ class MasterAnd : ComponentActivity() {
 
             AnimatedVisibility(
                 visible = !selectedColors.contains(Color.Transparent),
-                enter = scaleIn(),
-                exit = scaleOut()
-            ) {
+                enter = scaleIn(
+                    initialScale = 0.5f,
+                    animationSpec = tween(durationMillis = 300)
+                ),
+                exit = scaleOut(
+                    targetScale = 0.5f,
+                    animationSpec = tween(durationMillis = 300)
+                )
+            )  {
                 IconButton(
                     onClick = onCheckClick,
                     modifier = Modifier.size(50.dp)
