@@ -85,7 +85,7 @@ fun LoginView(
         )
 
         // Number of Colors Field with Validation
-        OutlinedTextField(
+        TextField(
             value = numberColor.value.toString(),
             onValueChange = {
                 val parsedValue = it.toIntOrNull()
@@ -187,7 +187,7 @@ fun OutlinedTextFieldWithError(
     validateInput: (String) -> Boolean
 ) {
     Column {
-        OutlinedTextField(
+      TextField(
             value = value,
             onValueChange = {
                 onValueChange(it)
