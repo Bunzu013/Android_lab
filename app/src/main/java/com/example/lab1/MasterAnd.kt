@@ -62,6 +62,19 @@ class MasterAnd : ComponentActivity() {
     ) {
         val profileImageUri = profileUriString?.let { Uri.parse(it) }
 
+        val infiniteTransition = rememberInfiniteTransition()
+        val titleScale by infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        )
+
+        // Losowanie dostępnych kolorów na podstawie numberColor
+        //val availableColors = selectRandomColors(colorList, numberColor)
+
         var gameRows by remember { mutableStateOf(mutableListOf<GameRowState>()) }
         var selectedColors by remember { mutableStateOf(List(4) { Color.Transparent }) }  // Always 4 colors
         var correctColors by remember { mutableStateOf(selectRandomColors(colorList, numberColor)) }
@@ -75,8 +88,14 @@ class MasterAnd : ComponentActivity() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Display correct colors for debugging (remove in final version)
-
+            Text(
+                text = "MasterAnd Game",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .scale(titleScale)
+                    .padding(bottom = 16.dp)
+            )
 
             Text(
                 text = "Your score: $score",
