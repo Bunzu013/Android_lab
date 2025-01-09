@@ -5,6 +5,8 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -20,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.scale
 
 data class GameRowState(
     val selectedColors: List<Color> = listOf(),
@@ -47,7 +51,7 @@ class MasterAnd : ComponentActivity() {
             MasterAndScreen(
                 name = intent?.getStringExtra("NAME") ?: "No name provided",
                 email = intent?.getStringExtra("EMAIL") ?: "No email provided",
-                numberColor = intent?.getIntExtra("COLOR", 4) ?: 4,
+                numberColor = intent?.getIntExtra("COLOR", 5) ?: 5,
                 profileUriString = intent?.getStringExtra("PROFILE_URI")
             )
         }
@@ -57,7 +61,7 @@ class MasterAnd : ComponentActivity() {
     fun MasterAndScreen(
         name: String = "Preview Name",
         email: String = "preview@example.com",
-        numberColor: Int = 4,
+        numberColor: Int = 5,
         profileUriString: String? = null
     ) {
         val profileImageUri = profileUriString?.let { Uri.parse(it) }
@@ -76,11 +80,12 @@ class MasterAnd : ComponentActivity() {
         //val availableColors = selectRandomColors(colorList, numberColor)
 
         var gameRows by remember { mutableStateOf(mutableListOf<GameRowState>()) }
-        var selectedColors by remember { mutableStateOf(List(4) { Color.Transparent }) }  // Always 4 colors
-        var correctColors by remember { mutableStateOf(selectRandomColors(colorList, numberColor)) }
+        var selectedColors by remember { mutableStateOf(List(4) { Color.Transparent }) }
+        var availableColors by remember {  mutableStateOf(selectRandomColors(colorList, numberColor))  }
+        var correctColors by remember { mutableStateOf(selectRandomColors(availableColors, 4)) }
         var score by remember { mutableStateOf(0) }
         var gameFinished by remember { mutableStateOf(false) }
-        var availableColors by remember { mutableStateOf(correctColors.shuffled()) }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -129,7 +134,7 @@ class MasterAnd : ComponentActivity() {
                                 availableColors,
                                 selectedColors,
                                 selectedColors[index],
-                                numberColor  // Respect numberColor
+                                numberColor
                             )
                         }
                     },
@@ -138,19 +143,12 @@ class MasterAnd : ComponentActivity() {
                             val feedback = checkColors(selectedColors, correctColors)
 
                             gameRows = gameRows.toMutableList().also {
-                                it.add(
-                                    GameRowState(
-                                        selectedColors.toList(),
-                                        feedback
-                                    )
-                                )
+                                it.add(GameRowState(selectedColors.toList(), feedback))
                             }
 
                             if (feedback.all { it == Color.Green }) {
                                 gameFinished = true
-
                             } else {
-                                // Reset selectedColors to transparent after check
                                 selectedColors = List(4) { Color.Transparent }
                             }
                             score++
@@ -158,11 +156,12 @@ class MasterAnd : ComponentActivity() {
                     }
                 )
             }
+
             if (gameFinished) {
                 Button(onClick = {
                     gameRows = mutableListOf()
                     selectedColors = List(4) { Color.Transparent }
-                    correctColors = selectRandomColors(colorList, numberColor)
+                    correctColors = selectRandomColors(availableColors, numberColor)
                     score = 0
                     gameFinished = false
                 }) {
@@ -170,7 +169,6 @@ class MasterAnd : ComponentActivity() {
                 }
             }
             Spacer(modifier = Modifier.weight(1f))
-
             Button(
                 onClick = {
                     val intent = Intent(this@MasterAnd, ScoreView::class.java).apply {
@@ -203,7 +201,6 @@ class MasterAnd : ComponentActivity() {
             }
         }
     }
-
     fun checkColors(
         selectedColors: List<Color>,
         correctColors: List<Color>
@@ -246,8 +243,6 @@ class MasterAnd : ComponentActivity() {
         return feedback
     }
 
-
-
     fun selectRandomColors(availableColors: List<Color>, numberColor: Int): List<Color> {
         return availableColors.shuffled().take(numberColor)
     }
@@ -258,28 +253,16 @@ class MasterAnd : ComponentActivity() {
         currentColor: Color,
         numberColor: Int
     ): Color {
-        // Limit the colors available to the user based on numberColor
         val availableColors = colors.take(numberColor)
-
-        // Get the index of the current color in the list
         val currentIndex = availableColors.indexOf(currentColor)
 
-        // Try to find the next available color that is not already selected
-        for (i in currentIndex + 1 until availableColors.size) {
+        for (i in (currentIndex + 1) until availableColors.size) {
             if (!selectedColors.contains(availableColors[i])) {
                 return availableColors[i]
             }
         }
 
-        // If no color is found, loop back and try earlier colors
-        for (i in 0 until currentIndex) {
-            if (!selectedColors.contains(availableColors[i])) {
-                return availableColors[i]
-            }
-        }
-
-        // If no other color is available, fallback to the current color
-        return currentColor
+        return availableColors.firstOrNull { !selectedColors.contains(it) } ?: currentColor
     }
 
     @Composable
@@ -301,12 +284,9 @@ class MasterAnd : ComponentActivity() {
             onClick = onClick,
             modifier = Modifier
                 .size(50.dp)
-                .background(color = color, shape = CircleShape)
+                .background(animColor.value, shape = CircleShape)
                 .border(2.dp, Color.Black, CircleShape),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = color,
-                contentColor = Color.Black
-            ),
+            colors = ButtonDefaults.buttonColors(containerColor = animColor.value),
             shape = CircleShape,
             enabled = enabled
         ) {}
@@ -327,7 +307,7 @@ class MasterAnd : ComponentActivity() {
         Box(
             modifier = Modifier
                 .size(15.dp)
-                .background(color, shape = CircleShape)
+                .background(animColor.value, shape = CircleShape)
                 .border(2.dp, Color.Black, CircleShape)
         )
     }
@@ -370,8 +350,8 @@ class MasterAnd : ComponentActivity() {
                 }
             }
 
-            feedbackColors.forEach { feedbackColor ->
-                FeedbackCircle(color = feedbackColor)
+            feedbackColors.forEachIndexed { index, feedbackColor ->
+                FeedbackCircle(color = feedbackColor, delayMillis = index * 300) // Opóźnienie dla kolejnych kółek
             }
         }
     }
@@ -379,10 +359,6 @@ class MasterAnd : ComponentActivity() {
     @Preview(showBackground = true)
     @Composable
     fun MasterAndPreview() {
-        MasterAndScreen(
-            name = "Preview User",
-            email = "preview@example.com",
-            numberColor = 4
-        )
+        MasterAndScreen()
     }
 }
