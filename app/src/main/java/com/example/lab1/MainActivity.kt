@@ -11,7 +11,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             LoginView { name, email, numberColor, profileUri ->
-                val intent = Intent(this@MainActivity, MasterAnd::class.java).apply {
+                val intent = Intent(this@MainActivity, ProfileScreen::class.java).apply {
                     putExtra("NAME", name)
                     putExtra("EMAIL", email)
                     putExtra("COLOR", numberColor)
