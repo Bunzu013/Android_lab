@@ -84,14 +84,19 @@ class MasterAnd : ComponentActivity() {
                 fontWeight = FontWeight.Bold
             )
 
-            gameRows.forEach { rowState ->
-                GameRow(
-                    selectedColors = rowState.selectedColors,
-                    feedbackColors = rowState.feedbackColors,
-                    clickable = false,
-                    onSelectColorClick = {},
-                    onCheckClick = {}
-                )
+            gameRows.forEachIndexed { index, rowState ->
+                AnimatedVisibility(
+                    visible = true, // Wszystkie wiersze są widoczne
+                    enter = expandVertically(expandFrom = Alignment.Top)
+                ) {
+                    GameRow(
+                        selectedColors = rowState.selectedColors,
+                        feedbackColors = rowState.feedbackColors,
+                        clickable = false,
+                        onSelectColorClick = {},
+                        onCheckClick = {}
+                    )
+                }
             }
 
             if (!gameFinished) {
@@ -264,6 +269,15 @@ class MasterAnd : ComponentActivity() {
         color: Color,
         enabled: Boolean
     ) {
+        val animColor = remember { Animatable(color) }
+
+        LaunchedEffect(color) {
+            animColor.animateTo(
+                targetValue = color,
+                animationSpec = tween(500, easing = LinearEasing)
+            )
+        }
+
         Button(
             onClick = onClick,
             modifier = Modifier
@@ -280,7 +294,17 @@ class MasterAnd : ComponentActivity() {
     }
 
     @Composable
-    fun FeedbackCircle(color: Color) {
+    fun FeedbackCircle(color: Color, delayMillis: Int) {
+        val animColor = remember { Animatable(Color.Transparent) }
+
+        LaunchedEffect(color) {
+            kotlinx.coroutines.delay(delayMillis.toLong())
+            animColor.animateTo(
+                targetValue = color,
+                animationSpec = tween(durationMillis = 500) // Czas trwania animacji
+            )
+        }
+
         Box(
             modifier = Modifier
                 .size(15.dp)
@@ -310,16 +334,21 @@ class MasterAnd : ComponentActivity() {
                 )
             }
 
-            IconButton(
-                onClick = onCheckClick,
-                modifier = Modifier.size(50.dp),
-                enabled = !selectedColors.contains(Color.Transparent)
+            AnimatedVisibility(
+                visible = !selectedColors.contains(Color.Transparent),
+                enter = scaleIn(),
+                exit = scaleOut()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Check",
-                    tint = Color.Black
-                )
+                IconButton(
+                    onClick = onCheckClick,
+                    modifier = Modifier.size(50.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Check",
+                        tint = Color.Black
+                    )
+                }
             }
 
             feedbackColors.forEach { feedbackColor ->
